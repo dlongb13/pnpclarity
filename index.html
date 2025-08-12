@@ -42,6 +42,7 @@ async function fetchJSON(url) {
   if (!res.ok) throw new Error('HTTP '+res.status);
   // Expect either { data: [...] } or bare array
   const j = await res.json();
+  if (j && j.rows) return { data: j.rows };
   return Array.isArray(j) ? { data:j } : j;
 }
 async function ensureData(key,url) {
