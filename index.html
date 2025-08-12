@@ -17,6 +17,7 @@
   select { width:100%; background:#0f172a; border:1px solid #374151; color:#e5e7eb; padding:.3rem; border-radius:.3rem; }
   canvas { width:100%; height:300px; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
 </head>
 <body>
 <nav id="nav">
@@ -48,6 +49,57 @@ async function fetchJSON(url) {
 async function ensureData(key,url) {
   if (!state.cache[key]) state.cache[key] = await fetchJSON(url);
   return state.cache[key];
+}
+
+// ---- inventory helpers ----
+function extractMonths(row) {
+  const months = {};
+  const re = /^([A-Za-z]{3}-\d{2}) (Start|Forecast|Component Usage|Purchases|Production|End)$/;
+  for (const k in row) {
+    const m = k.match(re);
+    if (m) {
+      const mon = m[1];
+      const field = m[2];
+      months[mon] ||= {};
+      months[mon][field] = Number(row[k]) || 0;
+    }
+  }
+  return months;
+}
+
+function buildWaterfallSeries(months) {
+  const order = Object.keys(months).sort((a,b)=>new Date('1 '+a)-new Date('1 '+b));
+  const labels=[], data=[], colors=[];
+  const stepColors = {
+    Start:'#6b7280',
+    Forecast:'#ef4444',
+    'Component Usage':'#ef4444',
+    Purchases:'#10b981',
+    Production:'#10b981',
+    End:'#6b7280'
+  };
+  let prevEnd;
+  for (const mon of order) {
+    let start = prevEnd ?? months[mon].Start || 0;
+    labels.push(`${mon} Start`);
+    data.push([0, start]);
+    colors.push(stepColors.Start);
+    let cur = start;
+    const seq = ['Forecast','Component Usage','Purchases','Production'];
+    for (const step of seq) {
+      const v = months[mon][step] || 0;
+      const next = cur + ((step==='Forecast'||step==='Component Usage')?-v:v);
+      labels.push(`${mon} ${step}`);
+      data.push([cur, next]);
+      colors.push(stepColors[step]);
+      cur = next;
+    }
+    prevEnd = cur;
+    labels.push(`${mon} End`);
+    data.push([0, cur]);
+    colors.push(stepColors.End);
+  }
+  return { labels, data, colors };
 }
 
 // ---- small table builder (sortable) ----
@@ -98,20 +150,53 @@ async function renderWaterfalls() {
     root.textContent = 'No inventoryFlow data.';
     return root;
   }
-  // 4 stacked waterfall blocks (filters + canvas placeholders)
+  const descs = [...new Set(flow.data.map(r=>r.Description).filter(Boolean))].sort();
+  const prodLines = [...new Set(flow.data.map(r=>r['Prod Line']).filter(Boolean))].sort();
+  const compLevels = [...new Set(flow.data.map(r=>r['Comp Level']).filter(Boolean))].sort();
+
+  function populate(sel, values, label) {
+    sel.innerHTML = `<option value="">${label} (any)</option>` + values.map(v=>`<option>${v}</option>`).join('');
+  }
+
+  function draw(panel) {
+    const selects = panel.querySelectorAll('select');
+    const filters = {};
+    selects.forEach(s=>{ if (s.value) filters[s.dataset.field] = s.value; });
+    const row = flow.data.find(r=>Object.keys(filters).every(k=>r[k]===filters[k]));
+    const canvas = panel.querySelector('canvas');
+    if (!row) {
+      if (panel.chart) { panel.chart.destroy(); panel.chart=null; }
+      return;
+    }
+    const months = extractMonths(row);
+    const series = buildWaterfallSeries(months);
+    if (panel.chart) panel.chart.destroy();
+    panel.chart = new Chart(canvas, {
+      type:'bar',
+      data:{ labels:series.labels, datasets:[{ data:series.data, backgroundColor:series.colors }] },
+      options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
+    });
+  }
+
   for (let i=0; i<4; i++) {
     const panel = document.createElement('div');
     panel.className = 'panel';
     panel.innerHTML = `
       <h3>Waterfall ${i+1}</h3>
       <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
-        <select><option>Desc (any)</option></select>
-        <select><option>Prod Line (any)</option></select>
-        <select><option>Comp Level (any)</option></select>
+        <select data-field="Description"></select>
+        <select data-field="Prod Line"></select>
+        <select data-field="Comp Level"></select>
       </div>
-      <canvas id="chart${i+1}"></canvas>
+      <canvas></canvas>
     `;
     root.appendChild(panel);
+    const [sd, sp, sc] = panel.querySelectorAll('select');
+    populate(sd, descs, 'Desc');
+    populate(sp, prodLines, 'Prod Line');
+    populate(sc, compLevels, 'Comp Level');
+    panel.querySelectorAll('select').forEach(sel=>sel.addEventListener('change', ()=>draw(panel)));
+    draw(panel);
   }
   return root;
 }
