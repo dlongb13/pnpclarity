@@ -98,6 +98,12 @@ async function renderWaterfalls() {
     root.textContent = 'No inventoryFlow data.';
     return root;
   }
+  const unique = key => [...new Set(flow.data.map(r => r[key]).filter(Boolean))].sort();
+  const buildOptions = values => ['<option>(any)</option>', ...values.map(v => `<option>${v}</option>`)].join('');
+  const descOptions = buildOptions(unique('Description'));
+  const prodOptions = buildOptions(unique('Product Line'));
+  const compOptions = buildOptions(unique('Component Level'));
+
   // 4 stacked waterfall blocks (filters + canvas placeholders)
   for (let i=0; i<4; i++) {
     const panel = document.createElement('div');
@@ -105,9 +111,9 @@ async function renderWaterfalls() {
     panel.innerHTML = `
       <h3>Waterfall ${i+1}</h3>
       <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
-        <select><option>Desc (any)</option></select>
-        <select><option>Prod Line (any)</option></select>
-        <select><option>Comp Level (any)</option></select>
+        <select>${descOptions}</select>
+        <select>${prodOptions}</select>
+        <select>${compOptions}</select>
       </div>
       <canvas id="chart${i+1}"></canvas>
     `;
