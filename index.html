@@ -1,68 +1,83 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PnP Clarity — Mini Studio</title>
-<style>
-  body { margin:0; font:14px/1.4 system-ui, sans-serif; background:#0b0f14; color:#e5e7eb; }
-  nav { display:flex; gap:.5rem; padding:.75rem 1rem; border-bottom:1px solid #1f2937; background:#111827; position:sticky; top:0; }
-  nav button { border:1px solid #374151; background:#1f2937; color:#e5e7eb; padding:.4rem .75rem; border-radius:.5rem; cursor:pointer; }
-  nav button[aria-current="page"] { outline:2px solid #60a5fa; background:#0f172a; }
-  .wrap { max-width:1400px; margin:0 auto; padding:1rem; }
-  .panel { background:#111827; border:1px solid #374151; border-radius:.5rem; padding:1rem; margin-bottom:1rem; }
-  table { width:100%; border-collapse:collapse; }
-  th, td { padding:.5rem .6rem; border-bottom:1px solid #374151; }
-  tr:nth-child(even) { background:#0e1622; }
-  select { width:100%; background:#0f172a; border:1px solid #374151; color:#e5e7eb; padding:.3rem; border-radius:.3rem; }
-  canvas { width:100%; height:300px; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PnP Clarity — Mini Studio</title>
+  <style>
+    body { margin:0; font:14px/1.4 system-ui, sans-serif; background:#0b0f14; color:#e5e7eb; }
+    nav { display:flex; gap:.5rem; padding:.75rem 1rem; border-bottom:1px solid #1f2937; background:#111827; position:sticky; top:0; }
+    nav button { border:1px solid #374151; background:#1f2937; color:#e5e7eb; padding:.4rem .75rem; border-radius:.5rem; cursor:pointer; }
+    nav button[aria-current="page"] { outline:2px solid #60a5fa; background:#0f172a; }
+    .wrap { max-width:1400px; margin:0 auto; padding:1rem; }
+    .panel { background:#111827; border:1px solid #374151; border-radius:.5rem; padding:1rem; margin-bottom:1rem; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:.5rem .6rem; border-bottom:1px solid #374151; }
+    tr:nth-child(even) { background:#0e1622; }
+    select { width:100%; background:#0f172a; border:1px solid #374151; color:#e5e7eb; padding:.3rem; border-radius:.3rem; }
+    canvas { width:100%; height:300px; }
+  </style>
 </head>
 <body>
-<nav id="nav">
-  <button data-page="waterfalls" aria-current="page">Waterfalls</button>
-  <button data-page="production">Production Plan</button>
-  <button data-page="purchasing">Purchasing Plan</button>
-</nav>
-<main class="wrap" id="app"></main>
+  <nav id="nav">
+    <button data-page="waterfalls" aria-current="page">Waterfalls</button>
+    <button data-page="production">Production Plan</button>
+    <button data-page="purchasing">Purchasing Plan</button>
+  </nav>
+  <main class="wrap" id="app"></main>
 
-<script>
-// ===== Endpoints (update if your Apps Script URL changes) =====
-const ENDPOINTS = {
-  inventoryFlow: 'https://script.google.com/macros/s/AKfycbzURBxvHmhXdptzjJNGO01INhZxDqLt2XIRJG_ofLVoqLEk9uQEB6M9UYNWS5H1_eiBDw/exec?sheet=inventoryFlow',
-  productionPlan: 'https://script.google.com/macros/s/AKfycbzURBxvHmhXdptzjJNGO01INhZxDqLt2XIRJG_ofLVoqLEk9uQEB6M9UYNWS5H1_eiBDw/exec?sheet=ProductionPlan',
-  purchasingPlan: 'https://script.google.com/macros/s/AKfycbzURBxvHmhXdptzjJNGO01INhZxDqLt2XIRJG_ofLVoqLEk9uQEB6M9UYNWS5H1_eiBDw/exec?sheet=purchasingPlan'
-};
+  <script>
+    // ===== Endpoints (update if your Apps Script URL changes) =====
+    const ENDPOINTS = {
+      inventoryFlow: 'https://script.google.com/macros/s/AKfycbzURBxvHmhXdptzjJNGO01INhZxDqLt2XIRJG_ofLVoqLEk9uQEB6M9UYNWS5H1_eiBDw/exec?sheet=inventoryFlow',
+      productionPlan: 'https://script.google.com/macros/s/AKfycbzURBxvHmhXdptzjJNGO01INhZxDqLt2XIRJG_ofLVoqLEk9uQEB6M9UYNWS5H1_eiBDw/exec?sheet=ProductionPlan',
+      purchasingPlan: 'https://script.google.com/macros/s/AKfycbzURBxvHmhXdptzjJNGO01INhZxDqLt2XIRJG_ofLVoqLEk9uQEB6M9UYNWS5H1_eiBDw/exec?sheet=purchasingPlan'
+    };
 
-const state = { page:'waterfalls', cache:{} };
+    const state = { page: 'waterfalls', cache: {} };
 
-// ---- fetch helpers ----
-async function fetchJSON(url) {
-  const res = await fetch(url, { cache:'no-store' });
-  if (!res.ok) throw new Error('HTTP '+res.status);
-  // Expect either { data: [...] } or bare array
-  const j = await res.json();
-  if (j && j.rows) return { data: j.rows };
-  return Array.isArray(j) ? { data:j } : j;
-}
-async function ensureData(key,url) {
-  if (!state.cache[key]) state.cache[key] = await fetchJSON(url);
-  return state.cache[key];
-}
+    // ---- fetch helpers ----
+    async function fetchJSON(url) {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const j = await res.json();
+      if (j && j.rows) return { data: j.rows };
+      return Array.isArray(j) ? { data: j } : j;
+    }
+    async function ensureData(key, url) {
+      if (!state.cache[key]) state.cache[key] = await fetchJSON(url);
+      return state.cache[key];
+    }
 
-// ---- small table builder (sortable) ----
-function renderTable(headers, rows) {
-  const table = document.createElement('table');
-  const thead = document.createElement('thead');
-  const trh = document.createElement('tr');
-  headers.forEach(h => {
-    const th = document.createElement('th');
-    th.textContent = h;
-    th.style.cursor = 'pointer';
-    th.onclick = () => {
-      const idx = headers.indexOf(h);
-      rows.sort((a,b)=>(''+a[idx]).localeCompare(''+b[idx]));
-      tbody.innerHTML = '';
+    // ---- small table builder (sortable) ----
+    function renderTable(headers, rows) {
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const trh = document.createElement('tr');
+
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        th.style.cursor = 'pointer';
+        th.onclick = () => {
+          const idx = headers.indexOf(h);
+          rows.sort((a, b) => ('' + a[idx]).localeCompare('' + b[idx]));
+          tbody.innerHTML = '';
+          rows.forEach(r => {
+            const tr = document.createElement('tr');
+            r.forEach(c => {
+              const td = document.createElement('td');
+              td.textContent = c;
+              tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+          });
+        };
+        trh.appendChild(th);
+      });
+
+      thead.appendChild(trh);
+      const tbody = document.createElement('tbody');
       rows.forEach(r => {
         const tr = document.createElement('tr');
         r.forEach(c => {
@@ -72,98 +87,90 @@ function renderTable(headers, rows) {
         });
         tbody.appendChild(tr);
       });
-    };
-    trh.appendChild(th);
-  });
-  thead.appendChild(trh);
-  const tbody = document.createElement('tbody');
-  rows.forEach(r => {
-    const tr = document.createElement('tr');
-    r.forEach(c => {
-      const td = document.createElement('td');
-      td.textContent = c;
-      tr.appendChild(td);
+
+      table.append(thead, tbody);
+      return table;
+    }
+
+    // ---- pages ----
+    async function renderWaterfalls() {
+      const root = document.createElement('div');
+      const flow = await ensureData('inventoryFlow', ENDPOINTS.inventoryFlow);
+      if (!flow?.data?.length) {
+        root.textContent = 'No inventoryFlow data.';
+        return root;
+      }
+
+      const unique = key => [...new Set(flow.data.map(r => r[key]).filter(Boolean))].sort();
+      const buildOptions = values => ['<option>(any)</option>', ...values.map(v => `<option>${v}</option>`)].join('');
+      const descOptions = buildOptions(unique('Description'));
+      const prodOptions = buildOptions(unique('Product Line'));
+      const compOptions = buildOptions(unique('Component Level'));
+
+      // 4 stacked waterfall blocks (filters + canvas placeholders)
+      for (let i = 0; i < 4; i++) {
+        const panel = document.createElement('div');
+        panel.className = 'panel';
+        panel.innerHTML = `
+          <h3>Waterfall ${i + 1}</h3>
+          <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
+            <select>${descOptions}</select>
+            <select>${prodOptions}</select>
+            <select>${compOptions}</select>
+          </div>
+          <canvas id="chart${i + 1}"></canvas>
+        `;
+        root.appendChild(panel);
+      }
+      return root;
+    }
+
+    async function renderProduction() {
+      const root = document.createElement('div');
+      const prod = await ensureData('productionPlan', ENDPOINTS.productionPlan);
+      if (!prod?.data?.length) {
+        root.textContent = 'No ProductionPlan data.';
+        return root;
+      }
+      const headers = Object.keys(prod.data[0]);
+      const rows = prod.data.map(r => headers.map(h => r[h] ?? ''));
+      root.appendChild(renderTable(headers, rows));
+      return root;
+    }
+
+    async function renderPurchasing() {
+      const root = document.createElement('div');
+      const pur = await ensureData('purchasingPlan', ENDPOINTS.purchasingPlan);
+      if (!pur?.data?.length) {
+        root.textContent = 'No purchasingPlan data.';
+        return root;
+      }
+      const headers = Object.keys(pur.data[0]);
+      const rows = pur.data.map(r => headers.map(h => r[h] ?? ''));
+      root.appendChild(renderTable(headers, rows));
+      return root;
+    }
+
+    // ---- router/render ----
+    async function render() {
+      const host = document.getElementById('app');
+      host.innerHTML = '';
+      if (state.page === 'waterfalls') host.appendChild(await renderWaterfalls());
+      if (state.page === 'production') host.appendChild(await renderProduction());
+      if (state.page === 'purchasing') host.appendChild(await renderPurchasing());
+    }
+
+    document.getElementById('nav').addEventListener('click', e => {
+      if (e.target.matches('button')) {
+        state.page = e.target.dataset.page;
+        document.querySelectorAll('#nav button').forEach(b =>
+          b.setAttribute('aria-current', b === e.target ? 'page' : 'false')
+        );
+        render();
+      }
     });
-    tbody.appendChild(tr);
-  });
-  table.append(thead, tbody);
-  return table;
-}
 
-// ---- pages ----
-async function renderWaterfalls() {
-  const root = document.createElement('div');
-  const flow = await ensureData('inventoryFlow', ENDPOINTS.inventoryFlow);
-  if (!flow?.data?.length) {
-    root.textContent = 'No inventoryFlow data.';
-    return root;
-  }
-  const unique = key => [...new Set(flow.data.map(r => r[key]).filter(Boolean))].sort();
-  const buildOptions = values => ['<option>(any)</option>', ...values.map(v => `<option>${v}</option>`)].join('');
-  const descOptions = buildOptions(unique('Description'));
-  const prodOptions = buildOptions(unique('Product Line'));
-  const compOptions = buildOptions(unique('Component Level'));
-
-  // 4 stacked waterfall blocks (filters + canvas placeholders)
-  for (let i=0; i<4; i++) {
-    const panel = document.createElement('div');
-    panel.className = 'panel';
-    panel.innerHTML = `
-      <h3>Waterfall ${i+1}</h3>
-      <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
-        <select>${descOptions}</select>
-        <select>${prodOptions}</select>
-        <select>${compOptions}</select>
-      </div>
-      <canvas id="chart${i+1}"></canvas>
-    `;
-    root.appendChild(panel);
-  }
-  return root;
-}
-
-async function renderProduction() {
-  const root = document.createElement('div');
-  const prod = await ensureData('productionPlan', ENDPOINTS.productionPlan);
-  if (!prod?.data?.length) {
-    root.textContent = 'No ProductionPlan data.';
-    return root;
-  }
-  const headers = Object.keys(prod.data[0]);
-  const rows = prod.data.map(r => headers.map(h => r[h] ?? ''));
-  root.appendChild(renderTable(headers, rows));
-  return root;
-}
-
-async function renderPurchasing() {
-  const root = document.createElement('div');
-  const pur = await ensureData('purchasingPlan', ENDPOINTS.purchasingPlan);
-  if (!pur?.data?.length) {
-    root.textContent = 'No purchasingPlan data.';
-    return root;
-  }
-  const headers = Object.keys(pur.data[0]);
-  const rows = pur.data.map(r => headers.map(h => r[h] ?? ''));
-  root.appendChild(renderTable(headers, rows));
-  return root;
-}
-
-// ---- router/render ----
-async function render() {
-  const host = document.getElementById('app');
-  host.innerHTML = '';
-  if (state.page === 'waterfalls') host.appendChild(await renderWaterfalls());
-  if (state.page === 'production') host.appendChild(await renderProduction());
-  if (state.page === 'purchasing') host.appendChild(await renderPurchasing());
-}
-document.getElementById('nav').addEventListener('click', e => {
-  if (e.target.matches('button')) {
-    state.page = e.target.dataset.page;
-    document.querySelectorAll('#nav button').forEach(b => b.setAttribute('aria-current', b === e.target ? 'page' : 'false'));
     render();
-  }
-});
-render();
-</script>
+  </script>
 </body>
 </html>
