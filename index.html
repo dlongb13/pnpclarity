@@ -98,20 +98,46 @@ async function renderWaterfalls() {
     root.textContent = 'No inventoryFlow data.';
     return root;
   }
+  const descs = [...new Set(flow.data.map(r => r['Description']).filter(Boolean))].sort();
+  const prodLines = [...new Set(flow.data.map(r => r['Product Line']).filter(Boolean))].sort();
+  const compLevels = [...new Set(flow.data.map(r => r['Component Level']).filter(Boolean))].sort();
+
+  const buildOptions = (values, label) =>
+    `<option value="">${label}</option>` + values.map(v => `<option value="${v}">${v}</option>`).join('');
+
   // 4 stacked waterfall blocks (filters + canvas placeholders)
-  for (let i=0; i<4; i++) {
+  for (let i = 0; i < 4; i++) {
     const panel = document.createElement('div');
     panel.className = 'panel';
     panel.innerHTML = `
-      <h3>Waterfall ${i+1}</h3>
+      <h3>Waterfall ${i + 1}</h3>
       <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
-        <select><option>Desc (any)</option></select>
-        <select><option>Prod Line (any)</option></select>
-        <select><option>Comp Level (any)</option></select>
+        <select class="desc"></select>
+        <select class="prod"></select>
+        <select class="comp"></select>
       </div>
-      <canvas id="chart${i+1}"></canvas>
+      <canvas id="chart${i + 1}"></canvas>
     `;
     root.appendChild(panel);
+
+    const descSel = panel.querySelector('select.desc');
+    const prodSel = panel.querySelector('select.prod');
+    const compSel = panel.querySelector('select.comp');
+    descSel.innerHTML = buildOptions(descs, 'Desc (any)');
+    prodSel.innerHTML = buildOptions(prodLines, 'Prod Line (any)');
+    compSel.innerHTML = buildOptions(compLevels, 'Comp Level (any)');
+
+    const update = () => {
+      const d = descSel.value;
+      const p = prodSel.value;
+      const c = compSel.value;
+      let rows = flow.data;
+      if (d) rows = rows.filter(r => r['Description'] === d);
+      if (p) rows = rows.filter(r => r['Product Line'] === p);
+      if (c) rows = rows.filter(r => r['Component Level'] === c);
+      console.log('update waterfall', i + 1, { d, p, c, rows });
+    };
+    [descSel, prodSel, compSel].forEach(sel => sel.addEventListener('change', update));
   }
   return root;
 }
